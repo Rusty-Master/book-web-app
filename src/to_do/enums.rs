@@ -2,6 +2,7 @@ use core::fmt;
 
 use serde::Serialize;
 
+#[derive(Clone)]
 pub enum TaskStatus {
     Done,
     Pending,
