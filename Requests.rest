@@ -10,7 +10,7 @@ POST http://127.0.0.1:8080/v1/item/edit HTTP/1.1
 content-type: application/json
 
 {
-    "title": "washing",
+    "title": "learn",
     "status": "DONE"
 }
 
