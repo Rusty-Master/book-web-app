@@ -5,15 +5,21 @@ mod state;
 mod to_do;
 mod views;
 
+use actix_cors::Cors;
 use actix_service::Service;
 use actix_web::{App, HttpServer};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
+        let cors = Cors::default()
+            .allow_any_origin()
+            .allow_any_method()
+            .allow_any_header();
+
         App::new()
             .wrap_fn(|req, srv| {
-                println!("{:?}", req);
+                println!("{}-{}", req.method(), req.uri());
                 let future = srv.call(req);
                 async {
                     let result = future.await?;
@@ -21,6 +27,7 @@ async fn main() -> std::io::Result<()> {
                 }
             })
             .configure(views::views_factory)
+            .wrap(cors)
     })
     .bind("127.0.0.1:8080")?
     .run()
