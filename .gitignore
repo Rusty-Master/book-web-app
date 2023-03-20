@@ -2,6 +2,8 @@ backend/target
 backend/Notes.md
 backend/Cargo.lock
 /target
+/.vscode
+Cargo.lock
 
 # Logs
 frontend/logs
