@@ -1,12 +1,12 @@
+use crate::diesel;
+use crate::models::item::item::Item;
 use crate::{
-    state::read_file,
-    to_do::{
-        enums::TaskStatus,
-        structs::{base::Base, pending::Pending},
-        to_do_factory, ItemTypes,
-    },
+    database::establish_connection,
+    schema::to_do,
+    to_do::{enums::TaskStatus, structs::base::Base, to_do_factory, ItemTypes},
 };
 use actix_web::{body::BoxBody, http::header::ContentType, HttpRequest, HttpResponse, Responder};
+use diesel::prelude::*;
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -41,25 +41,28 @@ impl ToDoItems {
     }
 
     pub fn get_state() -> ToDoItems {
-        let state = read_file("./state.json");
+        let connection = establish_connection();
+        let mut buffer = Vec::new();
 
-        let mut items = Vec::new();
+        let items = to_do::table
+            .order(to_do::columns::id.asc())
+            .load::<Item>(&connection)
+            .unwrap();
 
-        for (key, value) in state {
-            let status = TaskStatus::from_string(value.as_str().unwrap().to_string());
-            let item = to_do_factory(&key, status);
-
-            items.push(item);
+        for item in items {
+            let status = TaskStatus::from_string(item.status);
+            let item = to_do_factory(&item.title, status);
+            buffer.push(item);
         }
 
-        ToDoItems::new(items)
+        ToDoItems::new(buffer)
     }
 }
 
 impl Responder for ToDoItems {
     type Body = BoxBody;
 
-    fn respond_to(self, req: &HttpRequest) -> HttpResponse<Self::Body> {
+    fn respond_to(self, _: &HttpRequest) -> HttpResponse<Self::Body> {
         let body = serde_json::to_string(&self).unwrap();
         HttpResponse::Ok()
             .content_type(ContentType::json())

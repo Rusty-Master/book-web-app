@@ -56,7 +56,7 @@ function editItem() {
     let call = apiCall("/v1/item/edit", "POST");
     let json = {
         "title": title,
-        "status": "DONE"
+        "status": "Done"
     };
     call.send(JSON.stringify(json));
 }
@@ -66,7 +66,7 @@ function deleteItem() {
     let call = apiCall("/v1/item/delete", "POST");
     let json = {
         "title": title,
-        "status": "DONE"
+        "status": "Done"
     };
     call.send(JSON.stringify(json));
 }

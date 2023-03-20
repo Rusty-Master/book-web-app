@@ -1,9 +1,15 @@
+mod config;
+mod database;
 mod json_serialization;
 mod jwt;
-mod processes;
-mod state;
+mod models;
+mod schema;
 mod to_do;
 mod views;
+
+#[macro_use]
+extern crate diesel;
+extern crate dotenv;
 
 use actix_cors::Cors;
 use actix_service::Service;

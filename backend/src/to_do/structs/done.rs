@@ -1,8 +1,5 @@
 use super::base::Base;
-use crate::to_do::{
-    enums::TaskStatus,
-    traits::{delete::Delete, edit::Edit, get::Get},
-};
+use crate::to_do::enums::TaskStatus;
 
 pub struct Done {
     pub base: Base,
@@ -17,7 +14,3 @@ impl Done {
         Done { base }
     }
 }
-
-impl Get for Done {}
-impl Edit for Done {}
-impl Delete for Done {}

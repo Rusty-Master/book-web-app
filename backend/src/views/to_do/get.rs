@@ -1,10 +1,6 @@
-use actix_web::{web, Responder};
+use actix_web::Responder;
 
-use crate::{
-    json_serialization::to_do_items::ToDoItems,
-    state::read_file,
-    to_do::{enums::TaskStatus, to_do_factory},
-};
+use crate::json_serialization::to_do_items::ToDoItems;
 
 pub async fn get() -> impl Responder {
     ToDoItems::get_state()

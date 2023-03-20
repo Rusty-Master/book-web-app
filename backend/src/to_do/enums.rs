@@ -12,7 +12,7 @@ impl TaskStatus {
         match input.as_str() {
             "Done" => TaskStatus::Done,
             "Pending" => TaskStatus::Pending,
-            _ => panic!("input {} not supported", input),
+            _ => panic!("input {input} not supported"),
         }
     }
 }
@@ -31,6 +31,6 @@ impl Serialize for TaskStatus {
     where
         S: serde::Serializer,
     {
-        Ok(serializer.serialize_str(&self.to_string().as_str())?)
+        serializer.serialize_str(self.to_string().as_str())
     }
 }

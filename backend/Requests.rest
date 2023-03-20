@@ -11,6 +11,6 @@ content-type: application/json
 
 {
     "title": "learn",
-    "status": "DONE"
+    "status": "Done"
 }
 

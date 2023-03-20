@@ -1,7 +1,4 @@
-use crate::to_do::{
-    enums::TaskStatus,
-    traits::{create::Create, edit::Edit, get::Get},
-};
+use crate::to_do::enums::TaskStatus;
 
 use super::base::Base;
 
@@ -18,7 +15,3 @@ impl Pending {
         Pending { base }
     }
 }
-
-impl Get for Pending {}
-impl Create for Pending {}
-impl Edit for Pending {}
