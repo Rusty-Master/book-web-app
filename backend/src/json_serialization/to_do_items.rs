@@ -1,3 +1,4 @@
+use crate::database::DBCONNECTION;
 use crate::diesel;
 use crate::models::item::item::Item;
 use crate::{
@@ -40,14 +41,16 @@ impl ToDoItems {
         }
     }
 
-    pub fn get_state() -> ToDoItems {
-        let connection = establish_connection();
-        let mut buffer = Vec::new();
+    pub fn get_state(user_id: i32) -> ToDoItems {
+        let connection = DBCONNECTION.db_connection.get().unwrap();
 
         let items = to_do::table
+            .filter(to_do::columns::user_id.eq(user_id))
             .order(to_do::columns::id.asc())
             .load::<Item>(&connection)
             .unwrap();
+
+        let mut buffer = Vec::with_capacity(items.len());
 
         for item in items {
             let status = TaskStatus::from_string(item.status);
