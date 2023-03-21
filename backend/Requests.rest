@@ -14,3 +14,12 @@ content-type: application/json
     "status": "Done"
 }
 
+### CREATE USER
+POST http://127.0.0.1:8080/v1/user/create HTTP/1.1
+content-type: application/json
+
+{
+    "name": "user1",
+    "email": "user1@mail.com",
+    "password": "password"
+}
