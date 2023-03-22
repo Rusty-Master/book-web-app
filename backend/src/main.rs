@@ -1,4 +1,5 @@
 mod config;
+mod counter;
 mod database;
 mod json_serialization;
 mod jwt;
@@ -12,12 +13,17 @@ extern crate diesel;
 
 use actix_cors::Cors;
 use actix_service::Service;
-use actix_web::{App, HttpResponse, HttpServer};
+use actix_web::{middleware::Logger, App, HttpResponse, HttpServer};
 use futures::future::{ok, Either};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     const ALLOWED_VERSION: &'static str = include_str!("./output_data.txt");
+
+    let site_counter = counter::Counter { count: 0 };
+    site_counter.save();
+
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
     HttpServer::new(|| {
         let cors = Cors::default()
@@ -28,7 +34,10 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap_fn(|req, srv| {
                 let passed: bool = req.path().contains(&format!("/{}/", ALLOWED_VERSION));
-                println!("{}-{}", req.method(), req.uri());
+
+                let mut site_counter = counter::Counter::load().unwrap();
+                site_counter.count += 1;
+                site_counter.save();
 
                 let end_result = if passed {
                     Either::Left(srv.call(req))
@@ -45,6 +54,7 @@ async fn main() -> std::io::Result<()> {
             })
             .configure(views::views_factory)
             .wrap(cors)
+            .wrap(Logger::new("%a %{User-Agent}i %r %s %D"))
     })
     .bind("127.0.0.1:8080")?
     .run()
