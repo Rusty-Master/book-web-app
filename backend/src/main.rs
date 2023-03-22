@@ -12,10 +12,13 @@ extern crate diesel;
 
 use actix_cors::Cors;
 use actix_service::Service;
-use actix_web::{App, HttpServer};
+use actix_web::{App, HttpResponse, HttpServer};
+use futures::future::{ok, Either};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    const ALLOWED_VERSION: &'static str = include_str!("./output_data.txt");
+
     HttpServer::new(|| {
         let cors = Cors::default()
             .allow_any_origin()
@@ -24,10 +27,19 @@ async fn main() -> std::io::Result<()> {
 
         App::new()
             .wrap_fn(|req, srv| {
+                let passed: bool = req.path().contains(&format!("/{}/", ALLOWED_VERSION));
                 println!("{}-{}", req.method(), req.uri());
-                let future = srv.call(req);
-                async {
-                    let result = future.await?;
+
+                let end_result = if passed {
+                    Either::Left(srv.call(req))
+                } else {
+                    let resp = HttpResponse::NotImplemented()
+                        .body(format!("only {} API is supported", ALLOWED_VERSION));
+                    Either::Right(ok(req.into_response(resp).map_into_boxed_body()))
+                };
+
+                async move {
+                    let result = end_result.await?;
                     Ok(result)
                 }
             })
