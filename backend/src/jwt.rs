@@ -1,9 +1,7 @@
-use std::os::raw;
-
 use actix_web::{dev::Payload, error::ErrorUnauthorized, Error, FromRequest, HttpRequest};
-use chrono::{serde::ts_seconds, DateTime, Utc};
+use chrono::Utc;
 use futures::future::{err, ok, Ready};
-use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
@@ -11,8 +9,7 @@ use crate::config::Config;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JwToken {
     pub user_id: i32,
-    #[serde(with = "ts_seconds")]
-    pub minted: DateTime<Utc>,
+    pub exp: usize,
 }
 
 impl JwToken {
@@ -29,19 +26,27 @@ impl JwToken {
     }
 
     pub fn new(user_id: i32) -> Self {
-        let timestamp = Utc::now();
+        let config = Config::new();
+        let minutes = config.map.get("EXPIRE_MINUTES").unwrap().as_i64().unwrap();
+        let expiration = Utc::now()
+            .checked_add_signed(chrono::Duration::minutes(minutes))
+            .expect("valid timestamp.")
+            .timestamp();
         JwToken {
             user_id,
-            minted: timestamp,
+            exp: expiration as usize,
         }
     }
 
-    pub fn from_token(token: String) -> Option<Self> {
+    pub fn from_token(token: String) -> Result<Self, String> {
         let key = DecodingKey::from_secret(JwToken::get_key().as_ref());
-        let token_result = decode::<JwToken>(&token, &key, &Validation::new(Algorithm::HS256));
+        let token_result = decode::<JwToken>(&token, &key, &Validation::default());
         match token_result {
-            Ok(data) => Some(data.claims),
-            Err(_) => None,
+            Ok(data) => Ok(data.claims),
+            Err(error) => {
+                let message = format!("{}", error);
+                Err(message)
+            }
         }
     }
 }
@@ -56,8 +61,13 @@ impl FromRequest for JwToken {
                 let raw_token = data.to_str().unwrap().to_string();
                 let token_result = JwToken::from_token(raw_token);
                 match token_result {
-                    Some(token) => ok(token),
-                    None => err(ErrorUnauthorized("token can't be decoded")),
+                    Ok(token) => ok(token),
+                    Err(message) => {
+                        if message == "ExpiredSignature".to_owned() {
+                            return err(ErrorUnauthorized("token expired"));
+                        }
+                        err(ErrorUnauthorized("token cant be decoded"))
+                    }
                 }
             }
             None => err(ErrorUnauthorized("token not in header under key 'token'")),
