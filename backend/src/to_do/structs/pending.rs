@@ -15,3 +15,18 @@ impl Pending {
         Pending { base }
     }
 }
+
+#[cfg(test)]
+mod pending_tests {
+    use super::Pending;
+    use super::TaskStatus;
+
+    #[test]
+    fn new() {
+        let title = "expected title";
+        let pending_item = Pending::new(title);
+
+        assert_eq!(title.to_string(), pending_item.base.title);
+        assert_eq!(TaskStatus::Pending, pending_item.base.status);
+    }
+}

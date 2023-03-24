@@ -2,7 +2,7 @@ use core::fmt;
 
 use serde::Serialize;
 
-#[derive(Clone)]
+#[derive(Clone, Eq, Debug)]
 pub enum TaskStatus {
     Done,
     Pending,
@@ -32,5 +32,20 @@ impl Serialize for TaskStatus {
         S: serde::Serializer,
     {
         serializer.serialize_str(self.to_string().as_str())
+    }
+}
+
+impl PartialEq for TaskStatus {
+    fn eq(&self, other: &Self) -> bool {
+        match self {
+            TaskStatus::Done => match other {
+                TaskStatus::Done => true,
+                TaskStatus::Pending => false,
+            },
+            TaskStatus::Pending => match other {
+                TaskStatus::Done => false,
+                TaskStatus::Pending => true,
+            },
+        }
     }
 }

@@ -8,7 +8,7 @@ docker-compose up
 docker container ls  
 
 ### connect to database in interactive mode
-docker exec -it c35214fe363f psql -U username to_do
+docker exec -it [container id] psql -U username to_do
 #### then \c - connect, \d - list of relations(tables), \d+ 'name' - details about relation, \q - quit
 
 
@@ -19,10 +19,9 @@ diesel migration run
 diesel migration redo
 
 
-## frontend
-### run
+### frontend
+cd frontend
 npm run dev
 
-## backend
-### run
+### backend
 cargo run config.yml

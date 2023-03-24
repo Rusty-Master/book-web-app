@@ -74,3 +74,99 @@ impl FromRequest for JwToken {
         }
     }
 }
+
+#[cfg(test)]
+mod jwt_tests {
+    use std::str::FromStr;
+
+    use actix_web::http::header::{ContentType, HeaderName, HeaderValue};
+    use actix_web::test::{call_and_read_body_json, call_service, init_service, TestRequest};
+    use actix_web::{web, App, HttpRequest, HttpResponse};
+    use serde::{Deserialize, Serialize};
+    use serde_json::json;
+
+    use super::Config;
+    use super::JwToken;
+
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct ResponseFromTest {
+        pub user_id: i32,
+        pub exp_minutes: i32,
+    }
+
+    #[test]
+    fn get_key() {
+        assert_eq!(String::from("secret"), JwToken::get_key());
+    }
+
+    #[test]
+    fn get_exp() {
+        let config = Config::new();
+        let minutes = config.map.get("EXPIRE_MINUTES").unwrap().as_i64().unwrap();
+        assert_eq!(120, minutes);
+    }
+
+    #[test]
+    fn decode_incorrect_token() {
+        let encoded_token = String::from("Invalid token");
+        match JwToken::from_token(encoded_token) {
+            Err(message) => assert_eq!("InvalidToken", message),
+            _ => panic!("Incorrect token should not be able to be encoded"),
+        }
+    }
+
+    #[test]
+    fn encode_decode() {
+        let token = JwToken::new(5);
+        let encoded_token = token.encode();
+        let decoded_token = JwToken::from_token(encoded_token).unwrap();
+        assert_eq!(5, decoded_token.user_id);
+    }
+
+    async fn test_handler(token: JwToken, _: HttpRequest) -> HttpResponse {
+        HttpResponse::Ok().json(json!({"user_id": token.user_id, "exp_minutes":60}))
+    }
+
+    #[actix_web::test]
+    async fn test_no_token_request() {
+        let app = init_service(App::new().route("/", web::get().to(test_handler))).await;
+        let req = TestRequest::default()
+            .insert_header(ContentType::plaintext())
+            .to_request();
+        let res = call_service(&app, req).await;
+        assert_eq!("401", res.status().as_str());
+    }
+
+    #[actix_web::test]
+    async fn test_passing_token_request() {
+        let token = JwToken::new(5);
+        let encoded_token = token.encode();
+
+        let app = init_service(App::new().route("/", web::get().to(test_handler))).await;
+        let mut req = TestRequest::default()
+            .insert_header(ContentType::plaintext())
+            .to_request();
+
+        let header_name = HeaderName::from_str("token").unwrap();
+        let header_value = HeaderValue::from_str(encoded_token.as_str()).unwrap();
+        req.headers_mut().insert(header_name, header_value);
+
+        let res: ResponseFromTest = call_and_read_body_json(&app, req).await;
+        assert_eq!(5, res.user_id);
+    }
+
+    #[actix_web::test]
+    async fn test_false_token_request() {
+        let app = init_service(App::new().route("/", web::get().to(test_handler))).await;
+        let mut req = TestRequest::default()
+            .insert_header(ContentType::plaintext())
+            .to_request();
+
+        let header_name = HeaderName::from_str("token").unwrap();
+        let header_value = HeaderValue::from_str("test").unwrap();
+
+        req.headers_mut().insert(header_name, header_value);
+        let res = call_service(&app, req).await;
+        assert_eq!("401", res.status().as_str());
+    }
+}
